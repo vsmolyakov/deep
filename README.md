@@ -18,6 +18,8 @@ References:
 
 - [tf_classifier](./tensorflow/tf_classifier.py): DNN classifier for Iris dataset
 - [tf_regressor](./tensorflow/tf_regressor.py): DNN regressor for estimating Boston housing prices
+- [cnn_mnist](./tensorflow/cnn_mnist.py): CNN for MNIST digit classification
+
 
 References:  
 *https://www.tensorflow.org/*
