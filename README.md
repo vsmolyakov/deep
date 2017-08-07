@@ -18,8 +18,8 @@ References:
 
 - [tf_classifier](./tensorflow/tf_classifier.py): DNN classifier for Iris dataset
 - [tf_regressor](./tensorflow/tf_regressor.py): DNN regressor for estimating Boston housing prices
-- [cnn_mnist](./tensorflow/cnn_mnist.py): CNN for MNIST digit classification
-
+- [tf_cnn_mnist](./tensorflow/tf_cnn_mnist.py): CNN for MNIST digit classification
+- [tf_word2vec](./tensorflow/tf_word2vec.py): word2vec skip-gram model trained on the 20 newsgroups dataset
 
 References:  
 *https://www.tensorflow.org/*
