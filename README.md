@@ -24,6 +24,10 @@ References:
 
 **Theano**
 - [cnn_lenet](./theano/theano_cnn_lenet.py): LeNet CNN architecture for MNIST digit classification
+- [mlp](./theano/mlp.py): Multi-Layer Perceptron
+- [logistic_sgd](./theano/logistic_sgd.py): Logistic Regression
+- [theano_linreg](./theano/theano_linreg.py): Linear Regression
+
 
 References:
 *http://deeplearning.net/software/theano/*
