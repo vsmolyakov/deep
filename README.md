@@ -9,6 +9,7 @@ deep learning
 - [keras_lenet](./keras/keras_lenet.py): LeNet architecture for MNIST digit recognition
 - [sentiment_kernel](./keras/sentiment_kernel.py): LSTM neural network for sentence sentiment prediction
 - [lstm_language](./keras/keras_lstm_language.py): LSTM language model for generating text trained on Shakespeare
+- [pretrained](./keras/keras_pretrained.py): pretrained VGG16, VGG19, ResNet50, InceptionV3 for image classification
 
 
 References:  
@@ -23,7 +24,7 @@ References:
 - [tf_word2vec](./tensorflow/tf_word2vec.py): word2vec skip-gram model trained on the 20 newsgroups dataset
 - [tf_wide_and_deep](./tensorflow/tf_wide_and_deep.py): wide and deep classification architecture trained on census income dataset
 - [tf_gan_mlp](./tensorflow/tf_gan_mlp.py): generative adversarial network based on two MLPs using MNIST digits
-- [tf_inception_v3](./tensorflow/tf_inception_v3.py): inception v3 architecture pre-trained on ILSVRC-2012-CLS image classification dataset
+- [tf_inception_v3](./tensorflow/tf_inception_v3.py): InceptionV3 architecture pre-trained on ILSVRC-2012-CLS image classification dataset
 
 References:  
 *https://www.tensorflow.org/*
