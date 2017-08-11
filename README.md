@@ -19,10 +19,11 @@ References:
 - [tf_classifier](./tensorflow/tf_classifier.py): DNN classifier for Iris dataset
 - [tf_regressor](./tensorflow/tf_regressor.py): DNN regressor for estimating Boston housing prices
 - [tf_cnn_mnist](./tensorflow/tf_cnn_mnist.py): CNN for MNIST digit classification
+- [tf_inception_v3](./tensorflow/tf_inception_v3.py): inception v3 architecture pre-trained on ILSVRC-2012-CLS image classification dataset
 - [tf_autoencoder](./tensorflow/tf_autoencoder.py): a two-layer encoder / decoder architecture applied to MNIST digits
 - [tf_word2vec](./tensorflow/tf_word2vec.py): word2vec skip-gram model trained on the 20 newsgroups dataset
 - [tf_wide_and_deep](./tensorflow/tf_wide_and_deep.py): wide and deep classification architecture trained on census income dataset
-- [tf_gan_mlp](./tensorflow/tf_gan_mlp.py): generative adversarial network (GAN) based on two MLPs using MNIST digits
+- [tf_gan_mlp](./tensorflow/tf_gan_mlp.py): generative adversarial network based on two MLPs using MNIST digits
 
 
 References:  
