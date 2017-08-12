@@ -9,6 +9,7 @@ deep learning
 - [keras_lenet](./keras/keras_lenet.py): LeNet architecture for MNIST digit recognition
 - [sentiment_kernel](./keras/sentiment_kernel.py): LSTM neural network for sentence sentiment prediction
 - [lstm_language](./keras/keras_lstm_language.py): LSTM language model for generating text trained on Shakespeare
+- [lstm_series](./keras/keras_lstm_series.py): LSTM time series prediction applied to S&P500 data
 - [pretrained](./keras/keras_pretrained.py): pretrained VGG16, VGG19, ResNet50, InceptionV3 for image classification
 
 
