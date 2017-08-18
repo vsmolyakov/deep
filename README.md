@@ -26,6 +26,8 @@ References:
 - [tf_wide_and_deep](./tensorflow/tf_wide_and_deep.py): wide and deep classification architecture trained on census income dataset
 - [tf_gan_mlp](./tensorflow/tf_gan_mlp.py): generative adversarial network based on two MLPs using MNIST digits
 - [tf_inception_v3](./tensorflow/tf_inception_v3.py): InceptionV3 architecture pre-trained on ILSVRC-2012-CLS image classification dataset
+- [tf_optimizers](./tensorflow/tf_optimizers.py): a comparison of SGD, Momentum, RMSProp and Adam optimizers using a CNN trained on MNIST digits
+
 
 References:  
 *https://www.tensorflow.org/*
