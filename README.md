@@ -11,6 +11,7 @@ deep learning
 - [lstm_language](./keras/keras_lstm_language.py): LSTM language model for generating text trained on Shakespeare
 - [lstm_series](./keras/keras_lstm_series.py): LSTM time series prediction applied to S&P500 data
 - [pretrained](./keras/keras_pretrained.py): pretrained VGG16, VGG19, ResNet50, InceptionV3 for image classification
+- [transfer_learning](./keras/transfer_learning.py): ResNet50 fine tuned on Caltech101 dataset  
 
 
 References:  
