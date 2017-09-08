@@ -33,6 +33,14 @@ References:
 References:  
 *https://www.tensorflow.org/*
 
+**PyTorch**
+- [lenet5_cifar10](./pytorch/lenet5_cifar10.py): LeNet5 CNN architecture for CIFAR10 object classification   
+
+
+References:
+*http://pytorch.org/*
+
+
 **Theano**
 - [cnn_lenet](./theano/theano_cnn_lenet.py): LeNet CNN architecture for MNIST digit classification
 - [mlp](./theano/mlp.py): Multi-Layer Perceptron
@@ -42,11 +50,6 @@ References:
 
 References:
 *http://deeplearning.net/software/theano/*
-
-**PyTorch**
-
-References:
-*http://pytorch.org/*
 
 
 ### Dependencies
