@@ -34,6 +34,8 @@ class Net(nn.Module):
         x = self.fc3(x)
         return x
 
+use_gpu = torch.cuda.is_available()
+
 #load data
 print "loading data..."
 transform = transforms.Compose(
@@ -48,7 +50,10 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship'
 
 #instantiate CNN
 net = Net()
-net = net.cuda()
+if use_gpu:
+    print "found CUDA GPU..."
+    net = net.cuda()
+
 print net
 
 #define loss and optimizer
@@ -61,7 +66,11 @@ for epoch in range(16):
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
         inputs, labels = data
-        inputs, labels = Variable(inputs.cuda()), Variable(labels.cuda())
+        if use_gpu:
+            inputs, labels = Variable(inputs.cuda()), Variable(labels.cuda())
+        else:
+            inputs, labels = Variable(inputs), Variable(labels)
+
 
         optimizer.zero_grad()
         outputs = net(inputs)
@@ -80,10 +89,17 @@ correct = 0
 total = 0
 for data in testloader:
     images, labels = data
-    outputs = net(Variable(images.cuda()))
+    if use_gpu:
+        outputs = net(Variable(images.cuda()))
+    else:
+        outputs = net(Variable(images))
     _, predicted = torch.max(outputs.data, 1)
     total += labels.size(0)
-    correct += (predicted.cpu() == labels).sum()
+    if use_gpu:
+        correct += (predicted.cpu() == labels).sum()
+    else:
+        correct += (predicted == labels).sum()
+
 
 print "Test accuracy: %2.2f" %(100.0 * correct / total)
 
