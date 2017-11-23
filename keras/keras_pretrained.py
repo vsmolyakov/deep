@@ -13,6 +13,7 @@ from keras.applications import imagenet_utils
 from keras.applications.inception_v3 import preprocess_input
 from keras.preprocessing.image import img_to_array
 from keras.preprocessing.image import load_img
+from keras.preprocessing.image import ImageDataGenerator 
 
 MODELS = {
     'vgg16': VGG16,
@@ -34,11 +35,25 @@ if arch == 'inception':
 Network = MODELS[arch]
 model = Network(weights="imagenet")
 
+#data augmentation
+train_datagen = ImageDataGenerator(
+    rotation_range=40,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest')
+
 print "\nloading image..."
 image = load_img(image_path, target_size=input_shape)
 image = img_to_array(image)
 image = np.expand_dims(image, axis=0) # 1 x input_shape
 image = preprocess(image)
+
+#train_datagen.fit(image)
+#image = train_datagen.random_transform(image)
+#image = train_datagen.standardize(image)
 
 print "\nclassifying image with %s ..." %arch
 preds = model.predict(image)
