@@ -36,7 +36,7 @@ Network = MODELS[arch]
 model = Network(weights="imagenet")
 
 #data augmentation
-train_datagen = ImageDataGenerator(
+test_datagen = ImageDataGenerator(
     rotation_range=40,
     width_shift_range=0.2,
     height_shift_range=0.2,
@@ -48,12 +48,10 @@ train_datagen = ImageDataGenerator(
 print "\nloading image..."
 image = load_img(image_path, target_size=input_shape)
 image = img_to_array(image)
+#test_datagen.fit(np.expand_dims(image, axis=0)) #rank=4
+#image = test_datagen.random_transform(image) #rank=3
 image = np.expand_dims(image, axis=0) # 1 x input_shape
 image = preprocess(image)
-
-#train_datagen.fit(image)
-#image = train_datagen.random_transform(image)
-#image = train_datagen.standardize(image)
 
 print "\nclassifying image with %s ..." %arch
 preds = model.predict(image)
