@@ -38,6 +38,7 @@ References:
 **PyTorch**
 - [lenet5_cifar10](./pytorch/lenet5_cifar10.py): LeNet5 CNN architecture for CIFAR10 object classification   
 - [dan_sentiment](./pytorch/dan_sentiment.py): sentiment classifier based on averaging of pretrained word embeddings  
+- [gradients](./pytorch/gradient_norm.py): computes gradient and weight norms for a simple MLP architecture with different optimizers  
 
 
 References:
