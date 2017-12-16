@@ -66,7 +66,7 @@ pooled_grads_value, conv_layer_output_value = iterate([image])
 
 num_channels = conv_layer_output_value.shape[-1]
 
-#multiple each channel feature map by mean gradient of the class wrt to the channel
+#multiply each channel feature map by mean gradient of the class wrt to the channel
 for i in range(num_channels):
     conv_layer_output_value[:, :, i] *= pooled_grads_value[i]
 
