@@ -29,6 +29,18 @@ sns.set_style("whitegrid")
 
 FIGURES_PATH = "./figures/"
 
+def plot_images(generated_images, step, name, num_img=16, dim=(4,4), figsize=(10,10)):
+    plt.figure()
+    for i in range(generated_images.shape[0]):
+        plt.subplot(dim[0], dim[1], i+1)
+        img = generated_images[i,:,:,:]
+        plt.imshow(img)
+        plt.axis('off')
+    #end for
+    plt.tight_layout()
+    plt.savefig(FIGURES_PATH + '/' + name + '_cifar10_' + str(step) + '.png')
+    return None
+
 #load data
 print "loading data..."
 (x_train, y_train), (_, _) = keras.datasets.cifar10.load_data()
@@ -36,7 +48,7 @@ x_train = x_train[y_train.flatten() == 7] #select horse images
 x_train = x_train.reshape((x_train.shape[0],) + (32, 32, 3)).astype('float32')/255.0
 
 #training params
-iterations = 10000
+num_iter = 10000
 batch_size = 20
 
 #model params
@@ -96,7 +108,9 @@ gan.compile(optimizer=gan_optimizer, loss='binary_crossentropy')
 
 #GAN training
 start = 0
-for step in tqdm(range(iterations)):
+training_loss_dis = []
+training_loss_gan = []
+for step in tqdm(range(num_iter)):
     random_latent_vectors = np.random.normal(size=(batch_size, latent_dim))
     generated_images = generator.predict(random_latent_vectors)
 
@@ -117,21 +131,30 @@ for step in tqdm(range(iterations)):
     if start > len(x_train) - batch_size:
         start = 0
 
+    training_loss_dis.append(d_loss)
+    training_loss_gan.append(a_loss)
+
     if step % 1000 == 0:
         #gan.save_weights('gan.h5')
         print "step ", step
         print "discriminator loss: ", d_loss
         print "adversarial loss: ", a_loss
 
-        img = image.array_to_img(generated_images[0] * 255.0, scale=False)
-        img.save(FIGURES_PATH + '/generated_horse_iter_' + str(step) + '.png')
+        plot_images(generated_images[:16,:,:,:], step, name='generated')
+        plot_images(real_images[:16,:,:,:], step, name='real')
 
-        img = image.array_to_img(real_images[0] * 255.0, scale=False)
-        img.save(FIGURES_PATH + '/real_horse_iter_' + str(step) + '.png')
     #end if
+
 #end for
 
-
+plt.figure()
+plt.plot(training_loss_dis, c='b', lw=2.0, label='discriminator')
+plt.plot(training_loss_gan, c='r', lw=2.0, label='GAN')
+plt.title('DC-GAN CIFAR10')
+plt.xlabel('Batches')
+plt.ylabel('Training Loss')
+plt.legend(loc='upper right')
+plt.savefig('./figures/dcgan_training_loss_cifar10.png')
 
 
 
