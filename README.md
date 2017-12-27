@@ -8,6 +8,7 @@ deep learning
 - [image_search](./keras/image_search.py): VGG-16 applied to Caltech101 dataset for nearest neighbor image retrieval
 - [keras_lenet](./keras/keras_lenet.py): LeNet architecture for MNIST digit recognition
 - [keras_vae](./keras/keras_vae.py): Variational Auto-Encoder trained on MNIST digits
+- [keras_dcgan](./keras/keras_dcgan.py): Deep Convolutional GAN (DC-GAN) trained on CIFAR10 dataset
 - [sentiment_kernel](./keras/sentiment_kernel.py): LSTM neural network for sentence sentiment prediction
 - [lstm_language](./keras/keras_lstm_language.py): LSTM language model for generating text trained on Shakespeare
 - [lstm_series](./keras/keras_lstm_series.py): LSTM time series prediction applied to S&P500 data
