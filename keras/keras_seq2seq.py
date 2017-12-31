@@ -1,30 +1,33 @@
 import numpy as np
 import pandas as pd
-
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+import keras
 from keras.models import Model
 from keras.layers.recurrent import LSTM
+from keras.layers import Activation, Dense, RepeatVector, Input, merge
 from keras.layers.embeddings import Embedding
 from keras.layers.wrappers import TimeDistributed
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
-from keras.layers import Activation, Dense, RepeatVector, Input, merge
 from keras.optimizers import Adam
 from keras.models import load_model
+from keras.utils import plot_model
 
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
-from keras.callbacks import ReduceLROnPlateau
+from keras.callbacks import LearningRateScheduler 
 from keras.callbacks import EarlyStopping
 
-import io
-import json
-import math
+import io, json, math
+from tqdm import tqdm
 from time import time
 from unidecode import unidecode
 from nltk.translate import bleu_score
+
+sns.set_style("whitegrid")
+np.random.seed(0)
 
 DATA_PATH = "/data/vision/fisher/data1/vsmolyakov/seq2seq/"
 
@@ -48,27 +51,24 @@ def seq2seq_model(params):
     embedding_dim     = params['embedding_dim']
     hidden_dim        = params['hidden_dim']
 
+    #TODO: implement attention
+    #bi-directional LSTM encoder
     input = Input(shape=(max_input_length,), dtype='int32')
     embed = Embedding(source_vocab_size, embedding_dim, input_length=max_input_length)(input)
-
-    #bidirectional RNN
-    forwards = LSTM(hidden_dim, return_sequences=False)(embed)
-    backwards = LSTM(hidden_dim, return_sequences=False, go_backwards=True)(embed)
-    encoder = merge([forwards, backwards], mode='concat', concat_axis=-1)
-
-    #repeate encoder output for each output from the decoder
+    forward = LSTM(hidden_dim, dropout=0.2, recurrent_dropout=0.2, return_sequences=False)(embed)
+    backward = LSTM(hidden_dim, dropout=0.2, recurrent_dropout=0.2, return_sequences=False, go_backwards=True)(embed)
+    encoder = merge([forward, backward], mode='concat', concat_axis=-1)
     encoder = RepeatVector(max_output_length)(encoder)
 
-    decoder = LSTM(hidden_dim, return_sequences=True)(encoder)
-
-    #apply dense layer to each timestamp
+    #LSTM decoder
+    decoder = LSTM(hidden_dim * 2, dropout=0.2, recurrent_dropout=0.2, return_sequences=True)(encoder)
     decoder = TimeDistributed(Dense(target_vocab_size))(decoder)
-
     predictions = Activation("softmax")(decoder)
 
     return Model(input=input, output=predictions)
 
 def decode_outputs(predictions, target_reverse_word_index):
+    #TODO: beam-search
     outputs = []
     for probs in predictions:
         preds = probs.argmax(axis=-1)
@@ -83,12 +83,13 @@ def build_seq_vecs(sequences):
 
 def build_target_vecs(tgt_texts, n_examples, target_tokenizer, max_output_length, target_vocab_size):
     y = np.zeros((n_examples, max_output_length, target_vocab_size), dtype=np.bool)
-    for i, sent in enumerate(pad_sequences(target_tokenizer.texts_to_sequences(tgt_texts), maxlen=max_output_length)):
+    padded_seq = pad_sequences(target_tokenizer.texts_to_sequences(tgt_texts), maxlen=max_output_length)
+    for i, sent in enumerate(padded_seq):
         word_idxs = np.arange(max_output_length)
         y[i][[word_idxs, sent]] = True
     return y
 
-def generate_batches(params):
+def generate_batches_train(params):
 
     batch_size = params['batch_size']
     n_examples = params['n_examples'] 
@@ -100,23 +101,58 @@ def generate_batches(params):
     max_output_length = params['max_output_length']
     target_vocab_size = params['target_vocab_size']
 
+    #TODO: include shuffling
+
     gen_count = 0
     n_batches = np.int(math.floor(n_examples/batch_size))
     while True:
-        sequences = pad_sequences(source_tokenizer.texts_to_sequences(src_texts), maxlen=max_input_length)
-        X = build_seq_vecs(sequences)
-        y = build_target_vecs(tgt_texts, n_examples, target_tokenizer, max_output_length, target_vocab_size)
+        #print "generator train: ", gen_count 
+        start = batch_size * gen_count 
+        end = start + batch_size
 
-        idx = np.random.permutation(len(sequences))
-        X = X[idx]
-        y = y[idx]
+        seq_batch = source_tokenizer.texts_to_sequences(src_texts[start:end])  
+        seq_batch_pad = pad_sequences(seq_batch, maxlen=max_input_length)
+        X = build_seq_vecs(seq_batch_pad)
+        y = build_target_vecs(tgt_texts[start:end], batch_size, target_tokenizer, max_output_length, target_vocab_size)
 
-        for i in range(n_batches):
-            gen_count += 1
-            #print "yielding count: " + str(gen_count)
-            start = batch_size * i
-            end = start + batch_size
-            yield X[start:end], y[start:end]
+        gen_count += 1
+        if (gen_count >= n_batches):
+            gen_count = 0
+
+        yield X, y
+    #end while
+
+def generate_batches_val(params):
+
+    batch_size = params['batch_size']
+    n_examples = params['n_examples'] 
+    src_texts = params['src_texts']
+    tgt_texts = params['tgt_texts']
+    source_tokenizer = params['source_tokenizer'] 
+    target_tokenizer = params['target_tokenizer']
+    max_input_length = params['max_input_length']
+    max_output_length = params['max_output_length']
+    target_vocab_size = params['target_vocab_size']
+    
+    #TODO: include shuffling
+
+    gen_count = 0
+    n_batches = np.int(math.floor(n_examples/batch_size))
+    while True:
+        #print "generator val: ", gen_count 
+        start = batch_size * gen_count 
+        end = start + batch_size
+
+        seq_batch = source_tokenizer.texts_to_sequences(src_texts[start:end])  
+        seq_batch_pad = pad_sequences(seq_batch, maxlen=max_input_length)
+        X = build_seq_vecs(seq_batch_pad)
+        y = build_target_vecs(tgt_texts[start:end], batch_size, target_tokenizer, max_output_length, target_vocab_size)
+
+        gen_count += 1
+        if (gen_count >= n_batches):
+            gen_count = 0
+
+        yield X, y
     #end while
 
 def translate(model, sentences, params): 
@@ -128,6 +164,21 @@ def translate(model, sentences, params):
     input = build_seq_vecs(seqs)
     preds = model.predict(input, verbose=0)
     return decode_outputs(preds, target_reverse_word_index)
+
+def step_decay(epoch):
+    lr_init = 0.001
+    drop = 0.5
+    epochs_drop = 8.0
+    lr_new = lr_init * math.pow(drop, math.floor((1+epoch)/epochs_drop))
+    return lr_new
+
+class LR_hist(keras.callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.losses = []
+        self.lr = []
+    def on_epoch_end(self, batch, logs={}):
+        self.losses.append(logs.get('loss'))
+        self.lr.append(step_decay(len(self.losses)))
 
 #load data (english to german)
 print "loading and processing data..."
@@ -144,9 +195,16 @@ max_vocab_size = 10000          #max vocabulary size
 
 src_all, tgt_all = get_texts(data['en'], data['de'], max_len, max_examples)
 
-test_idx = int(0.999*len(src_all))
-src_texts, src_test = src_all[:test_idx], src_all[test_idx:]
-tgt_texts, tgt_test = tgt_all[:test_idx], tgt_all[test_idx:]
+num_val = 1000
+test_idx = int(0.85*len(src_all))
+src_texts = src_all[:test_idx-num_val]
+src_val, src_test = src_all[test_idx-num_val:test_idx], src_all[test_idx:]
+tgt_texts = tgt_all[:test_idx-num_val]
+tgt_val, tgt_test = tgt_all[test_idx-num_val:test_idx], tgt_all[test_idx:]
+
+print "num train: ", len(src_texts)
+print "num val: ", len(src_val)
+print "num test: ", len(src_test)
 
 """
 #load data (english to russian)
@@ -192,33 +250,33 @@ src_texts, src_test = src_all[:test_idx], src_all[test_idx:]
 tgt_texts, tgt_test = tgt_all[:test_idx], tgt_all[test_idx:]
 """
 
-n_examples = len(src_texts)
-print "number of training examples: ", n_examples
+n_examples_train = len(src_texts)
+n_examples_val = len(src_val)
 print "max word length: ", max_len 
 print "max vocab size: ", max_vocab_size 
 
 #model parameters
-hidden_dim = 128
-embedding_dim = 128 
+hidden_dim = 256 
+embedding_dim = 256 
 
 #training parameters
-n_epochs = 256 
+n_epochs = 64 
 batch_size = 32 
-n_batches = np.int(math.floor(n_examples/batch_size))
+n_batches_train = np.int(math.floor(n_examples_train/batch_size))
+n_batches_val = np.int(math.floor(n_examples_val/batch_size))
 
-start_token = '^'
-end_token = '$'
+start_token, end_token = '<start>', '<stop>'
 src_texts = [' '.join([start_token, unidecode(text), end_token]) for text in src_texts]
 tgt_texts = [' '.join([start_token, unidecode(text), end_token]) for text in tgt_texts]
-
+src_val   = [' '.join([start_token, unidecode(text), end_token]) for text in src_val]
+tgt_val   = [' '.join([start_token, unidecode(text), end_token]) for text in tgt_val]
 src_test  = [' '.join([start_token, unidecode(text), end_token]) for text in src_test]
 tgt_test  = [' '.join([start_token, unidecode(text), end_token]) for text in tgt_test]
 
 print "tokenizing..."
-filter_chars = '!"#$%&()*+,-./:;<=>?@[\\]^_{|}~\t\n\`""-'.replace(start_token, '').replace(end_token, '')
-source_tokenizer = Tokenizer(max_vocab_size, filters=filter_chars)
+source_tokenizer = Tokenizer(num_words=max_vocab_size, lower=True, char_level=False)
 source_tokenizer.fit_on_texts(src_texts)
-target_tokenizer = Tokenizer(max_vocab_size, filters=filter_chars)
+target_tokenizer = Tokenizer(num_words=max_vocab_size, lower=True, char_level=False)
 target_tokenizer.fit_on_texts(tgt_texts)
 
 source_vocab_size = len(source_tokenizer.word_index) + 1
@@ -230,6 +288,9 @@ max_input_length = max(len(seq) for seq in source_tokenizer.texts_to_sequences_g
 max_output_length = max(len(seq) for seq in source_tokenizer.texts_to_sequences_generator(tgt_texts))
 target_reverse_word_index = {v:k for k, v in target_tokenizer.word_index.items()}
 
+print "max input length: ", max_input_length
+print "max_output_length: ", max_output_length
+
 seq2seq_params = {
     'max_input_length':  max_input_length, 
     'max_output_length': max_output_length,
@@ -239,11 +300,23 @@ seq2seq_params = {
     'hidden_dim':        hidden_dim
 }
 
-generator_params = {
+generator_params_train = {
     'batch_size':        batch_size,
-    'n_examples':        n_examples,
+    'n_examples':        n_examples_train,
     'src_texts':         src_texts,
     'tgt_texts':         tgt_texts,
+    'source_tokenizer':  source_tokenizer,
+    'target_tokenizer':  target_tokenizer,
+    'max_input_length':  max_input_length,
+    'max_output_length': max_output_length,
+    'target_vocab_size': target_vocab_size
+}
+
+generator_params_val = {
+    'batch_size':        batch_size,
+    'n_examples':        n_examples_val,
+    'src_texts':         src_val,
+    'tgt_texts':         tgt_val,
     'source_tokenizer':  source_tokenizer,
     'target_tokenizer':  target_tokenizer,
     'max_input_length':  max_input_length,
@@ -264,15 +337,16 @@ model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accurac
 model.summary()
 
 #define checkpoints 
-file_name = DATA_PATH + 'weights_improvement_en2de.hdf5'
-checkpoint = ModelCheckpoint(file_name, monitor='loss', verbose=1, save_best_only=True, mode='min')
-tensor_board = TensorBoard(log_dir='./logs', write_graph=False, write_images=False)
-reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=8, min_lr=1e-6, verbose=1)
-early_stopping = EarlyStopping(monitor='loss', min_delta=0.01, patience=16, verbose=1)
-callbacks_list = [checkpoint, tensor_board, reduce_lr, early_stopping]
+file_name = DATA_PATH + 'weights-checkpoint-en2de.h5'
+checkpoint = ModelCheckpoint(file_name, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+tensor_board = TensorBoard(log_dir='./logs', write_graph=True)
+hist_lr = LR_hist()
+reduce_lr = LearningRateScheduler(step_decay) 
+early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=16, verbose=1)
+callbacks_list = [checkpoint, tensor_board, hist_lr, reduce_lr, early_stopping]
 
 print "training seq2seq model..."
-hist = model.fit_generator(generator=generate_batches(generator_params), steps_per_epoch=n_batches, epochs=n_epochs, verbose=2, callbacks=callbacks_list)
+hist = model.fit_generator(generator=generate_batches_train(generator_params_train), steps_per_epoch=n_batches_train, epochs=n_epochs, verbose=2, callbacks=callbacks_list, validation_data=generate_batches_val(generator_params_val), validation_steps=n_batches_val)
 
 model.save(DATA_PATH + "seq2seq_model_en2de.h5", overwrite=True)
 model.save_weights(DATA_PATH + "seq2seq_weights_en2de.h5", overwrite=True)
@@ -299,18 +373,30 @@ print "test corpus bleu score: ", corp_bleu_score
 
 #generate plots
 plt.figure()
-plt.plot(hist.history['loss'], label='Adam')
-plt.title('seq2seq training')
+plt.plot(hist.history['loss'], c='b', lw=2.0, label='train')
+plt.plot(hist.history['val_loss'], c='r', lw=2.0, label='val')
+plt.title('seq2seq NMT model')
 plt.xlabel('Epochs')
-plt.ylabel('Training Loss')
-plt.legend()
-plt.savefig('./figures/seq2seq_en2de_training_loss.png')
+plt.ylabel('Cross-Entropy Loss')
+plt.legend(loc='upper right')
+plt.savefig('./figures/seq2seq_en2de_loss.png')
 
 plt.figure()
-plt.plot(hist.history['acc'], label='Adam')
-plt.title('seq2seq training')
+plt.plot(hist.history['acc'], c='b', lw=2.0, label='train')
+plt.plot(hist.history['val_acc'], c='r', lw=2.0, label='val')
+plt.title('seq2seq NMT model')
 plt.xlabel('Epochs')
-plt.ylabel('Training Accuracy')
+plt.ylabel('Accuracy')
+plt.legend(loc='upper left')
+plt.savefig('./figures/seq2seq_en2de_acc.png')
+
+plt.figure()
+plt.plot(hist_lr.lr, lw=2.0, label='learning rate')
+plt.title('seq2seq NMT model')
+plt.xlabel('Epochs')
+plt.ylabel('Learning Rate')
 plt.legend()
-plt.savefig('./figures/seq2seq_en2de_training_acc.png')
+plt.savefig('./figures/seq2seq_learning_rate.png')
+
+plot_model(model, show_shapes=True, to_file='./figures/seq2seq_model.png')
 
