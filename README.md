@@ -15,8 +15,9 @@ deep learning
 - [pretrained](./keras/keras_pretrained.py): pretrained VGG16, VGG19, ResNet50, InceptionV3 for image classification
 - [transfer_learning](./keras/transfer_learning.py): ResNet50 fine tuned on Caltech101 dataset  
 - [keras_seq2seq](./keras/keras_seq2seq.py): seq2seq model for machine translation with bidirectional RNN encoder  
-- [grad_cam](./keras/keras_grad_cam.py): class activation map computed by weighing each channel by its average gradient
+- [grad_cam](./keras/keras_grad_cam.py): class activation map computed by weighing each channel by its average gradient  
 - [style_transfer](./keras/keras_style_transfer.py): neural style transfer with VGG19 by minimizing content and style loss with L-BFGS  
+- [keras_mdn](./keras/keras_mdn.py): Mixture Density Network (MDN) for learning parameters of a Gaussian Mixture Model
 
 References:  
 *https://keras.io/*  
