@@ -22,6 +22,18 @@ deep learning
 References:  
 *https://keras.io/*  
 
+**PyTorch**
+- [lenet5_cifar10](./pytorch/lenet5_cifar10.py): LeNet5 CNN architecture for CIFAR10 object classification   
+- [dan_sentiment](./pytorch/dan_sentiment.py): sentiment classifier based on averaging of pretrained word embeddings  
+- [lstm_qsim](./pytorch/lstm_qsim.py): LSTM encoder for question similarity trained on stack exchange dataset  
+- [gradients](./pytorch/gradient_norm.py): computes gradient and weight norms for a simple MLP architecture with different optimizers  
+- [normalizing flows](./pytorch/nf.py): a sequence of invertible density transformations for posterior approximation  
+
+
+References:
+*http://pytorch.org/*
+
+
 **TensorFlow**
 
 - [tf_classifier](./tensorflow/tf_classifier.py): DNN classifier for Iris dataset
@@ -38,16 +50,6 @@ References:
 
 References:  
 *https://www.tensorflow.org/*
-
-**PyTorch**
-- [lenet5_cifar10](./pytorch/lenet5_cifar10.py): LeNet5 CNN architecture for CIFAR10 object classification   
-- [dan_sentiment](./pytorch/dan_sentiment.py): sentiment classifier based on averaging of pretrained word embeddings  
-- [lstm_qsim](./pytorch/lstm_qsim.py): LSTM encoder for question similarity trained on stack exchange dataset  
-- [gradients](./pytorch/gradient_norm.py): computes gradient and weight norms for a simple MLP architecture with different optimizers  
-
-
-References:
-*http://pytorch.org/*
 
 
 **Theano**
