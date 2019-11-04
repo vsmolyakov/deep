@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import keras
 from keras.models import Model
 from keras.layers.recurrent import LSTM
-from keras.layers import Activation, Dense, RepeatVector, Input, merge
+from keras.layers import Activation, Dense
+from keras.layers import RepeatVector, Input, concatenate, dot
 from keras.layers.embeddings import Embedding
 from keras.layers.wrappers import TimeDistributed
 from keras.preprocessing.sequence import pad_sequences
@@ -51,32 +52,64 @@ def seq2seq_model(params):
     embedding_dim     = params['embedding_dim']
     hidden_dim        = params['hidden_dim']
 
-    #TODO: implement attention
-    #bi-directional LSTM encoder
+    # bi-directional LSTM encoder
     input = Input(shape=(max_input_length,), dtype='int32')
     embed = Embedding(source_vocab_size, embedding_dim, input_length=max_input_length)(input)
     forward = LSTM(hidden_dim, dropout=0.2, recurrent_dropout=0.2, return_sequences=False)(embed)
     backward = LSTM(hidden_dim, dropout=0.2, recurrent_dropout=0.2, return_sequences=False, go_backwards=True)(embed)
-    encoder = merge([forward, backward], mode='concat', concat_axis=-1)
+    encoder = concatenate([forward, backward], axis=-1)
     encoder = RepeatVector(max_output_length)(encoder)
 
-    #LSTM decoder
+    # LSTM decoder
     decoder = LSTM(hidden_dim * 2, dropout=0.2, recurrent_dropout=0.2, return_sequences=True)(encoder)
-    decoder = TimeDistributed(Dense(target_vocab_size))(decoder)
-    predictions = Activation("softmax")(decoder)
 
-    return Model(input=input, output=predictions)
+    # Attention
+    # Minh-Thang Luong et al, "Effective Approaches to Attention-based NMT", arXiv, Sep 2015
+    attention = dot([decoder, encoder], axes=[2, 2])  # equation (7) of the paper
+    attention = Activation('softmax')(attention)
 
-def decode_outputs(predictions, target_reverse_word_index):
-    #TODO: beam-search
-    outputs = []
-    for probs in predictions:
-        preds = probs.argmax(axis=-1)
+    context = dot([attention, encoder], axes=[2, 1])
+    decoder_combined_context = concatenate([context, decoder])
+
+    output = TimeDistributed(Dense(64, activation="tanh"))(decoder_combined_context)  # equation (5) of the paper
+    output = TimeDistributed(Dense(target_vocab_size, activation="softmax"))(output)  # equation (6) of the paper
+
+    return Model(input=input, output=output)
+
+def decode_outputs(predictions, target_reverse_word_index, beam_search=False):
+    if (beam_search):
+        outputs = []
+        k=4 #number of beams
+        sequences = [[list(), 1.0]]
+        # walk over each step in sequence
+        for row in predictions[0]:
+            all_candidates = list()
+            # expand each current candidate
+            #print(sequences)
+            for i in range(len(sequences)):
+                seq, score = sequences[i]
+                for j in range(len(row)):
+                    candidate = [seq + [j], score * -np.log(row[j])]
+                    all_candidates.append(candidate)
+            # order all candidates by score
+            ordered = sorted(all_candidates, key=lambda tup:tup[1])
+            # select k best
+            sequences = ordered[:k]
+        #end for
         tokens = []
-        for idx in preds:
+        for idx in sequences[0][0]:
             tokens.append(target_reverse_word_index.get(idx))
         outputs.append(" ".join([t for t in tokens if t is not None]))
-    return outputs
+        return outputs
+    else:
+        outputs = []
+        for probs in predictions:
+            preds = probs.argmax(axis=-1)
+            tokens = []
+            for idx in preds:
+                tokens.append(target_reverse_word_index.get(idx))
+            outputs.append(" ".join([t for t in tokens if t is not None]))
+        return outputs
 
 def build_seq_vecs(sequences):
     return np.array(sequences)
@@ -155,15 +188,20 @@ def generate_batches_val(params):
         yield X, y
     #end while
 
-def translate(model, sentences, params): 
+def translate(model, sentences, params, attention_vis=False, beam_search=False):
     source_tokenizer = params['source_tokenizer']
     max_input_length = params['max_input_length']
     target_reverse_word_index = params['target_reverse_word_index']
 
     seqs = pad_sequences(source_tokenizer.texts_to_sequences(sentences), maxlen=max_input_length)
     input = build_seq_vecs(seqs)
-    preds = model.predict(input, verbose=0)
-    return decode_outputs(preds, target_reverse_word_index)
+
+    if (attention_vis):
+        preds, attention = model.predict(input, verbose=0)
+        return decode_outputs(preds, target_reverse_word_index, beam_search), attention
+    else:
+        preds = model.predict(input, verbose=0)
+        return decode_outputs(preds, target_reverse_word_index, beam_search)
 
 def step_decay(epoch):
     lr_init = 0.001
@@ -181,7 +219,7 @@ class LR_hist(keras.callbacks.Callback):
         self.lr.append(step_decay(len(self.losses)))
 
 #load data (english to german)
-print "loading and processing data..."
+print("loading and processing data...")
 data = json.load(open('./data/en_de_corpus.json', 'r'))
 word_len_source = [len(item.split(' ')) for item in data['en']]
 word_len_target = [len(item.split(' ')) for item in data['de']]
@@ -202,9 +240,9 @@ src_val, src_test = src_all[test_idx-num_val:test_idx], src_all[test_idx:]
 tgt_texts = tgt_all[:test_idx-num_val]
 tgt_val, tgt_test = tgt_all[test_idx-num_val:test_idx], tgt_all[test_idx:]
 
-print "num train: ", len(src_texts)
-print "num val: ", len(src_val)
-print "num test: ", len(src_test)
+print("num train: ", len(src_texts))
+print("num val: ", len(src_val))
+print("num test: ", len(src_test))
 
 """
 #load data (english to russian)
@@ -252,16 +290,16 @@ tgt_texts, tgt_test = tgt_all[:test_idx], tgt_all[test_idx:]
 
 n_examples_train = len(src_texts)
 n_examples_val = len(src_val)
-print "max word length: ", max_len 
-print "max vocab size: ", max_vocab_size 
+print("max word length: ", max_len)
+print("max vocab size: ", max_vocab_size)
 
 #model parameters
 hidden_dim = 256 
 embedding_dim = 256 
 
 #training parameters
-n_epochs = 64 
-batch_size = 32 
+n_epochs = 64
+batch_size = 128
 n_batches_train = np.int(math.floor(n_examples_train/batch_size))
 n_batches_val = np.int(math.floor(n_examples_val/batch_size))
 
@@ -273,7 +311,7 @@ tgt_val   = [' '.join([start_token, unidecode(text), end_token]) for text in tgt
 src_test  = [' '.join([start_token, unidecode(text), end_token]) for text in src_test]
 tgt_test  = [' '.join([start_token, unidecode(text), end_token]) for text in tgt_test]
 
-print "tokenizing..."
+print("tokenizing...")
 source_tokenizer = Tokenizer(num_words=max_vocab_size, lower=True, char_level=False)
 source_tokenizer.fit_on_texts(src_texts)
 target_tokenizer = Tokenizer(num_words=max_vocab_size, lower=True, char_level=False)
@@ -281,15 +319,15 @@ target_tokenizer.fit_on_texts(tgt_texts)
 
 source_vocab_size = len(source_tokenizer.word_index) + 1
 target_vocab_size = len(target_tokenizer.word_index) + 1
-print "source vocab size: ", source_vocab_size
-print "target vocab size: ", target_vocab_size
+print("source vocab size: ", source_vocab_size)
+print("target vocab size: ", target_vocab_size)
 
 max_input_length = max(len(seq) for seq in source_tokenizer.texts_to_sequences_generator(src_texts))
 max_output_length = max(len(seq) for seq in source_tokenizer.texts_to_sequences_generator(tgt_texts))
 target_reverse_word_index = {v:k for k, v in target_tokenizer.word_index.items()}
 
-print "max input length: ", max_input_length
-print "max_output_length: ", max_output_length
+print("max input length: ", max_input_length)
+print("max_output_length: ", max_output_length)
 
 seq2seq_params = {
     'max_input_length':  max_input_length, 
@@ -330,7 +368,7 @@ translate_params = {
     'target_reverse_word_index': target_reverse_word_index
 }
 
-print "compiling seq2seq model..."
+print("compiling seq2seq model...")
 model = seq2seq_model(seq2seq_params)
 adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
@@ -345,7 +383,7 @@ reduce_lr = LearningRateScheduler(step_decay)
 early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=16, verbose=1)
 callbacks_list = [checkpoint, tensor_board, hist_lr, reduce_lr, early_stopping]
 
-print "training seq2seq model..."
+print("training seq2seq model...")
 hist = model.fit_generator(generator=generate_batches_train(generator_params_train), steps_per_epoch=n_batches_train, epochs=n_epochs, verbose=2, callbacks=callbacks_list, validation_data=generate_batches_val(generator_params_val), validation_steps=n_batches_val)
 
 model.save(DATA_PATH + "seq2seq_model_en2de.h5", overwrite=True)
@@ -355,21 +393,32 @@ model.save_weights(DATA_PATH + "seq2seq_weights_en2de.h5", overwrite=True)
 #model = load_model(DATA_PATH + '/trained_models/seq2seq_model_en2de.h5')
 
 #generate output
-print src_test[0]
-print tgt_test[0]
-print translate(model, [src_test[0]], translate_params)
+print(src_test[0])
+print(tgt_test[0])
+print(translate(model, [src_test[0]], translate_params, attention_vis=False, beam_search=True))
 
 #compute corpus bleu score
 hypotheses = []
 references = []
 for idx, sent in enumerate(src_test):
-    hyp = translate(model, [sent], translate_params)
+    hyp = translate(model, [sent], translate_params, attention_vis=False, beam_search=False)
     ref = [tgt_test[idx].lower()]
     hypotheses.append(hyp)
     references.append(ref)
 
 corp_bleu_score = bleu_score.corpus_bleu(references, hypotheses)
-print "test corpus bleu score: ", corp_bleu_score
+print("test corpus bleu score: ", corp_bleu_score)
+
+#visualize attention
+
+attention_layer = model.layers[8]
+attention_model = Model(inputs=model.inputs, outputs=model.outputs + [attention_layer.output])
+
+print(src_test[0])
+print(tgt_test[0])
+output, attention = translate(attention_model, [src_test[0]], translate_params, attention_vis=True, beam_search=True)
+print(output)
+print(attention)
 
 #generate plots
 plt.figure()
