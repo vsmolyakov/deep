@@ -64,7 +64,7 @@ def seq2seq_model(params):
     decoder = LSTM(hidden_dim * 2, dropout=0.2, recurrent_dropout=0.2, return_sequences=True)(encoder)
 
     # Attention
-    # Minh-Thang Luong et al, "Effective Approaches to Attention-based NMT", arXiv, Sep 2015
+    # Minh-Thang Luong et al, "Effective Approaches to Attention-based NMT", arxiv, Sep 2015
     attention = dot([decoder, encoder], axes=[2, 2])  # equation (7) of the paper
     attention = Activation('softmax')(attention)
 
