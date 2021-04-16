@@ -17,7 +17,8 @@ deep learning
 - [keras_seq2seq](./keras/keras_seq2seq.py): seq2seq model for machine translation with bidirectional RNN encoder  
 - [grad_cam](./keras/keras_grad_cam.py): class activation map computed by weighing each channel by its average gradient  
 - [style_transfer](./keras/keras_style_transfer.py): neural style transfer with VGG19 by minimizing content and style loss with L-BFGS  
-- [keras_mdn](./keras/keras_mdn.py): Mixture Density Network (MDN) for learning parameters of a Gaussian Mixture Model
+- [keras_mdn](./keras/keras_mdn.py): Mixture Density Network (MDN) for learning parameters of a Gaussian Mixture Model  
+- [keras_transformer](./keras/keras_transformer.py): Transformer for text classification  
 
 References:  
 *https://keras.io/*  
