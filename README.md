@@ -30,7 +30,7 @@ References:
 - [gradients](./pytorch/gradient_norm.py): computes gradient and weight norms for a simple MLP architecture with different optimizers  
 - [normalizing_flows](./pytorch/nf.py): a sequence of invertible density transformations for posterior approximation  
 - [fine_tuning_BERT](./pytorch/bert_fine_tuning.py): fine tuning BERT for text regression task   
-
+- [DistilBert](./pytorch/distilbert_imdb.py): fine tuning DistilBERT for IMDB sentiment classification using HuggingFace transformers   
 
 References:
 *http://pytorch.org/*
