@@ -31,6 +31,8 @@ References:
 - [normalizing_flows](./pytorch/nf.py): a sequence of invertible density transformations for posterior approximation  
 - [fine_tuning_BERT](./pytorch/bert_fine_tuning.py): fine tuning BERT for text regression task   
 - [distilbert_imdb](./pytorch/distilbert_imdb.py): fine tuning DistilBERT for IMDB sentiment classification using HuggingFace transformers   
+- [zeroshot_vit](./pytorch/zeroshot_vit.py): zero-shot image classification using HuggingFace transformers   
+
 
 References:
 *http://pytorch.org/*
