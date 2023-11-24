@@ -32,7 +32,8 @@ References:
 - [fine_tuning_BERT](./pytorch/bert_fine_tuning.py): fine tuning BERT for text regression task   
 - [distilbert_imdb](./pytorch/distilbert_imdb.py): fine tuning DistilBERT for IMDB sentiment classification using HuggingFace transformers   
 - [zeroshot_vit](./pytorch/zeroshot_vit.py): zero-shot image classification using HuggingFace transformers   
-- [llama2_chat_langchain](./pytorch/llama2_chat_langchain.py): integrating llama 2 chat with HuggingFace and LangChain  
+- [llama2_chat_langchain](./pytorch/llama2_chat_langchain.py): integrating llama 2 chat with HuggingFace and LangChain 
+- [peft_finetuning_llm](./pytorch/peft_finetuning_llm.py): PEFT finetuning of FLAN-T5 model using LoRA adapters   
 
 References:
 *http://pytorch.org/*
