@@ -1,6 +1,13 @@
-torch
-torchvision
+torch>=2.2.2
+jupyterlab >= 4.0         
+tiktoken >= 0.5.1          
+matplotlib >= 3.7.1        
+tqdm >= 4.66.1 
+numpy >= 1.26    
+pandas >= 2.2.1  
+psutil >= 5.9.5 
 transformers
+torchvision
 datasets
 evaluate
 accelerate
