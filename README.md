@@ -4,7 +4,7 @@ deep learning
 ### Description
 
 **PyTorch**
-- [gpt-2](./pytorch/gpt.py): GPT-2 architecture implemented from scratch
+- [gpt-2](./pytorch/gpt.py): transformer architecture implement from scratch
 - [training_loop](./pytorch/training_loop.py): simple training loop
 - [lenet5_cifar10](./pytorch/lenet5_cifar10.py): LeNet5 CNN architecture for CIFAR10 object classification   
 - [dan_sentiment](./pytorch/dan_sentiment.py): sentiment classifier based on averaging of pretrained word embeddings  
@@ -73,5 +73,5 @@ References:
 
 ### Dependencies
 
-Python 2.7  
+Python 3.14  
 
