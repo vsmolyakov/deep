@@ -3,6 +3,25 @@ deep learning
 
 ### Description
 
+**PyTorch**
+- [gpt-2](./pytorch/gpt.py): GPT-2 architecture implemented from scratch
+- [training_loop](./pytorch/training_loop.py): simple training loop
+- [lenet5_cifar10](./pytorch/lenet5_cifar10.py): LeNet5 CNN architecture for CIFAR10 object classification   
+- [dan_sentiment](./pytorch/dan_sentiment.py): sentiment classifier based on averaging of pretrained word embeddings  
+- [lstm_qsim](./pytorch/lstm_qsim.py): LSTM encoder for question similarity trained on stack exchange dataset  
+- [gradients](./pytorch/gradient_norm.py): computes gradient and weight norms for a simple MLP architecture with different optimizers  
+- [normalizing_flows](./pytorch/nf.py): a sequence of invertible density transformations for posterior approximation  
+- [fine_tuning_BERT](./pytorch/bert_fine_tuning.py): fine tuning BERT for text regression task   
+- [distilbert_imdb](./pytorch/distilbert_imdb.py): fine tuning DistilBERT for IMDB sentiment classification 
+- [zeroshot_vit](./pytorch/zeroshot_vit.py): zero-shot ViT image classifier  
+- [llama2_chat_langchain](./pytorch/llama2_chat_langchain.py): integrating llama 2 chat with HuggingFace and LangChain 
+- [peft_finetuning_llm](./pytorch/peft_finetuning_llm.py): PEFT finetuning of FLAN-T5 model using LoRA adapters 
+- [rag_openai_langchain](./pytorch/rag_openai_langchain.py): Retrieval Augmented Generation (RAG) using ChatOpenAI LLM and FAISS vectorstore  
+
+References:
+*http://pytorch.org/*
+
+
 **Keras**
 
 - [image_search](./keras/image_search.py): VGG-16 applied to Caltech101 dataset for nearest neighbor image retrieval
@@ -22,23 +41,6 @@ deep learning
 
 References:  
 *https://keras.io/*  
-
-**PyTorch**
-- [lenet5_cifar10](./pytorch/lenet5_cifar10.py): LeNet5 CNN architecture for CIFAR10 object classification   
-- [dan_sentiment](./pytorch/dan_sentiment.py): sentiment classifier based on averaging of pretrained word embeddings  
-- [lstm_qsim](./pytorch/lstm_qsim.py): LSTM encoder for question similarity trained on stack exchange dataset  
-- [gradients](./pytorch/gradient_norm.py): computes gradient and weight norms for a simple MLP architecture with different optimizers  
-- [normalizing_flows](./pytorch/nf.py): a sequence of invertible density transformations for posterior approximation  
-- [fine_tuning_BERT](./pytorch/bert_fine_tuning.py): fine tuning BERT for text regression task   
-- [distilbert_imdb](./pytorch/distilbert_imdb.py): fine tuning DistilBERT for IMDB sentiment classification using HuggingFace transformers   
-- [zeroshot_vit](./pytorch/zeroshot_vit.py): zero-shot image classification using HuggingFace transformers   
-- [llama2_chat_langchain](./pytorch/llama2_chat_langchain.py): integrating llama 2 chat with HuggingFace and LangChain 
-- [peft_finetuning_llm](./pytorch/peft_finetuning_llm.py): PEFT finetuning of FLAN-T5 model using LoRA adapters 
-- [rag_openai_langchain](./pytorch/rag_openai_langchain.py): Retrieval Augmented Generation (RAG) using ChatOpenAI LLM and FAISS vectorstore  
-
-References:
-*http://pytorch.org/*
-
 
 **TensorFlow**
 
