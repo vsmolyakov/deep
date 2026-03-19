@@ -26,10 +26,14 @@ class MLP(nn.Module):
 model = MLP(num_inputs=2, num_outputs=2)
 print(model)
 
+print(model.layers[0].weight.shape)
+print("CUDA available:", torch.cuda.is_available())
+
 num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print(f"Number of trainable parameters: {num_params}")
 
-print(model.layers[0].weight.shape)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
 
 X_train = torch.tensor([
     [-1.2, 3.1],
@@ -86,6 +90,7 @@ for epoch in range(num_epochs):
 
     for batch_idx, (x_batch, y_batch) in enumerate(train_loader):
 
+        x_batch, y_batch = x_batch.to(device), y_batch.to(device)
         logits = model(x_batch)
         loss = F.cross_entropy(logits, y_batch)
 
@@ -96,3 +101,26 @@ for epoch in range(num_epochs):
         print(f"Epoch {epoch+1:03d}/{num_epochs:03d}, Batch {batch_idx:03d}/{len(train_loader):03d}, Loss: {loss.item():.4f}")
 
 
+def compute_accuracy(model, dataloader):
+
+    model.eval()
+    correct = 0.0
+    total_examples = 0
+    
+    for idx, (features, labels) in enumerate(dataloader):
+        
+        with torch.no_grad():
+            logits = model(features)
+        
+        predictions = torch.argmax(logits, dim=1)
+        compare = labels == predictions
+        correct += torch.sum(compare)
+        total_examples += len(compare)
+
+    return (correct / total_examples).item()
+
+print(f"Test Accuracy: {compute_accuracy(model, test_loader):.4f}")
+
+#torch.save(model.state_dict(), "model.pt")
+#model = MLP(2, 2) # needs to match the original model exactly
+#model.load_state_dict(torch.load("model.pt", weights_only=True))
