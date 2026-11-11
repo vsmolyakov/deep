@@ -1,9 +1,9 @@
 import torch
-from torch import nn
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-torch.manual_seed(123)
+torch.manual_seed(42)
 
 class MLP(nn.Module):
     def __init__(self, num_inputs, num_outputs):
@@ -112,7 +112,7 @@ def compute_accuracy(model, dataloader):
         with torch.no_grad():
             logits = model(features)
         
-        predictions = torch.argmax(logits, dim=1)
+        predictions = torch.argmax(logits, dim=-1)
         compare = labels == predictions
         correct += torch.sum(compare)
         total_examples += len(compare)
