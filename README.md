@@ -15,7 +15,6 @@ deep learning
 - [normalizing_flows](./pytorch/nf.py): a sequence of invertible density transformations for posterior approximation  
 - [fine_tuning_BERT](./pytorch/bert_fine_tuning.py): fine tuning BERT for text regression task   
 - [distilbert_imdb](./pytorch/distilbert_imdb.py): fine tuning DistilBERT for IMDB sentiment classification 
-- [zeroshot_vit](./pytorch/zeroshot_vit.py): zero-shot ViT image classifier  
 - [llama2_chat_langchain](./pytorch/llama2_chat_langchain.py): integrating llama 2 chat with HuggingFace and LangChain 
 - [peft_finetuning_llm](./pytorch/peft_finetuning_llm.py): PEFT finetuning of FLAN-T5 model using LoRA adapters 
 - [rag_openai_langchain](./pytorch/rag_openai_langchain.py): Retrieval Augmented Generation (RAG) using ChatOpenAI LLM and FAISS vectorstore  
