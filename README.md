@@ -11,6 +11,7 @@ deep learning
 - [dan_sentiment](./pytorch/dan_sentiment.py): sentiment classifier based on averaging of pretrained word embeddings  
 - [lstm_qsim](./pytorch/lstm_qsim.py): LSTM encoder for question similarity trained on stack exchange dataset  
 - [gradients](./pytorch/gradient_norm.py): computes gradient and weight norms for a simple MLP architecture with different optimizers  
+- [sgld](./pytorch/sgld.py): stochastic gradient langevin dynamics applied to Bayesian logistic regression  
 - [normalizing_flows](./pytorch/nf.py): a sequence of invertible density transformations for posterior approximation  
 - [fine_tuning_BERT](./pytorch/bert_fine_tuning.py): fine tuning BERT for text regression task   
 - [distilbert_imdb](./pytorch/distilbert_imdb.py): fine tuning DistilBERT for IMDB sentiment classification 
