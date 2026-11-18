@@ -19,6 +19,7 @@ This is the unpreconditioned SGLD algorithm from the paper.
 from __future__ import annotations
 
 import math
+import numpy as np
 from typing import Dict, List
 
 import torch
@@ -142,7 +143,8 @@ def train_sgld(
     burn_in_steps: int = 500,
     thinning: int = 10,
     noise_scale: float = 1.0,
-) -> List[Dict[str, torch.Tensor]]:
+    record_history: bool = False,
+):
     """Train with SGLD and return posterior parameter samples.
 
     x: [N, input_dim]
@@ -167,6 +169,11 @@ def train_sgld(
     n_total = len(dataset)
     step = 0
     samples: List[Dict[str, torch.Tensor]] = []
+    history: Dict[str, list] = {
+        "step": [], "learning_rate": [], "likelihood_nll": [],
+        "prior_nll": [], "negative_log_posterior": [],
+        "gradient_norm": [], "update_norm": [], "parameters": [],
+    }
 
     for epoch in range(epochs):
         for xb, yb in loader:
@@ -191,7 +198,37 @@ def train_sgld(
             )
 
             negative_log_posterior_estimate.backward()
+
+            if record_history:
+                gradient_norm = torch.sqrt(sum(
+                    parameter.grad.detach().square().sum()
+                    for parameter in model.parameters()
+                    if parameter.grad is not None
+                )).item()
+                parameters_before = torch.cat([
+                    parameter.detach().reshape(-1)
+                    for parameter in model.parameters()
+                ])
+
             optimizer.step()
+
+            if record_history:
+                parameters_after = torch.cat([
+                    parameter.detach().reshape(-1)
+                    for parameter in model.parameters()
+                ])
+                history["step"].append(step)
+                history["learning_rate"].append(eps)
+                history["likelihood_nll"].append(scaled_likelihood_nll.detach().item())
+                history["prior_nll"].append(prior_nll.detach().item())
+                history["negative_log_posterior"].append(
+                    negative_log_posterior_estimate.detach().item()
+                )
+                history["gradient_norm"].append(gradient_norm)
+                history["update_norm"].append(
+                    torch.linalg.vector_norm(parameters_after - parameters_before).item()
+                )
+                history["parameters"].append(parameters_after.cpu().numpy().copy())
 
             # Collect samples only after burn-in, optionally thinning them.
             if step > burn_in_steps and (step - burn_in_steps) % thinning == 0:
@@ -207,7 +244,167 @@ def train_sgld(
                 f"minibatch NLL={minibatch_nll.item():.3f}"
             )
 
+    if record_history:
+        history["parameters"] = np.asarray(history["parameters"], dtype=float)
+        return samples, history
     return samples
+
+
+def plot_sgld_diagnostics(
+    history: Dict[str, list],
+    samples: List[Dict[str, torch.Tensor]],
+    true_parameters: Dict[str, torch.Tensor] | None = None,
+    parameter_names: List[str] | None = None,
+    show: bool = True,
+    save_path: str | None = None,
+) -> None:
+    """Plot SGLD training diagnostics and posterior sample distributions.
+
+    Requires matplotlib. `true_parameters` maps model parameter names (for
+    example, "linear.weight") to known values from a synthetic experiment.
+    """
+    import matplotlib.pyplot as plt
+
+    steps = history["step"]
+    parameter_trace = history["parameters"]
+    n_parameters = parameter_trace.shape[1]
+    names = parameter_names or [f"theta[{i}]" for i in range(n_parameters)]
+
+    fig, axes = plt.subplots(3, 2, figsize=(14, 13))
+    fig.suptitle("Stochastic Gradient Langevin Dynamics diagnostics", fontsize=15)
+
+    # 1. Polynomial step-size schedule
+    ax = axes[0, 0]
+    ax.plot(steps, history["learning_rate"])
+    ax.set(title="Learning-rate schedule", xlabel="Iteration", ylabel="Step size")
+    ax.set_yscale("log")
+    ax.grid(alpha=0.25)
+
+    # 2. Parameter trajectories
+    ax = axes[0, 1]
+    for index in range(min(n_parameters, len(names))):
+        ax.plot(steps, parameter_trace[:, index], label=names[index], linewidth=1)
+    ax.set(title="Parameter traces", xlabel="Iteration", ylabel="Parameter value")
+    ax.legend()
+    ax.grid(alpha=0.25)
+
+    # 3. Objective and likelihood/prior components
+    ax = axes[1, 0]
+    ax.plot(steps, history["negative_log_posterior"], label="Negative log posterior")
+    ax.plot(steps, history["likelihood_nll"], label="Scaled likelihood NLL", alpha=0.7)
+    ax.plot(steps, history["prior_nll"], label="Prior NLL", alpha=0.7)
+    ax.set(title="Objective components (minibatch estimates)",
+           xlabel="Iteration", ylabel="Value")
+    ax.legend()
+    ax.grid(alpha=0.25)
+
+    # 4. Gradient and update magnitudes
+    ax = axes[1, 1]
+    ax.plot(steps, history["gradient_norm"], label="Gradient norm")
+    ax.plot(steps, history["update_norm"], label="Parameter update norm")
+    ax.set(title="Gradient and update magnitudes",
+           xlabel="Iteration", ylabel="L2 norm")
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid(alpha=0.25)
+
+    # 5. Posterior marginals from retained samples
+    ax = axes[2, 0]
+    if samples:
+        sample_names = list(samples[0].keys())
+        flattened_samples = []
+        labels = []
+        for sample_name in sample_names:
+            values = torch.stack([sample[sample_name] for sample in samples])
+            for j in range(values[0].numel()):
+                flattened_samples.append(values.reshape(len(samples), -1)[:, j].numpy())
+                labels.append(f"{sample_name}[{j}]" if values[0].numel() > 1
+                              else sample_name)
+        for values, label in zip(flattened_samples, labels):
+            ax.hist(values, bins=35, density=True, alpha=0.45, label=label)
+        if true_parameters:
+            # Draw known synthetic ground-truth values when supplied.
+            for sample_name, truth in true_parameters.items():
+                truth_values = torch.as_tensor(truth).reshape(-1).tolist()
+                for j, value in enumerate(truth_values):
+                    label = f"{sample_name}[{j}]" if len(truth_values) > 1 else sample_name
+                    ax.axvline(value, linestyle="--", linewidth=1.5,
+                               label=f"True {label}")
+        ax.legend(fontsize=8)
+    else:
+        ax.text(0.5, 0.5, "No posterior samples collected",
+                ha="center", va="center", transform=ax.transAxes)
+    ax.set(title="Posterior marginal distributions",
+           xlabel="Parameter value", ylabel="Density")
+    ax.grid(alpha=0.2)
+
+    # 6. Running posterior mean
+    ax = axes[2, 1]
+    if samples:
+        sample_matrix = torch.stack([
+            torch.cat([sample[name].reshape(-1) for name in sample])
+            for sample in samples
+        ]).numpy()
+        running_mean = sample_matrix.cumsum(axis=0) / (
+            torch.arange(1, len(sample_matrix) + 1).numpy()[:, None]
+        )
+        for index in range(min(sample_matrix.shape[1], len(names))):
+            ax.plot(range(1, len(sample_matrix) + 1), running_mean[:, index],
+                    label=names[index])
+        ax.set(title="Running posterior mean", xlabel="Retained sample",
+               ylabel="Running mean")
+        ax.legend()
+    else:
+        ax.text(0.5, 0.5, "No posterior samples collected",
+                ha="center", va="center", transform=ax.transAxes)
+    ax.grid(alpha=0.25)
+
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=160, bbox_inches="tight")
+        print(f"Saved SGLD diagnostic plots to: {save_path}")
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def plot_posterior_pair(
+    samples: List[Dict[str, torch.Tensor]],
+    parameter_a: str = "linear.weight",
+    parameter_b: str = "linear.bias",
+    parameter_a_index: int = 0,
+    parameter_b_index: int = 0,
+    show: bool = True,
+    save_path: str | None = None,
+) -> None:
+    """Plot a two-parameter posterior scatter plot (useful for logistic regression)."""
+    import matplotlib.pyplot as plt
+
+    if not samples:
+        raise ValueError("No posterior samples available.")
+    a_all = torch.stack([s[parameter_a].reshape(-1) for s in samples]).numpy()
+    b_all = torch.stack([s[parameter_b].reshape(-1) for s in samples]).numpy()
+    if not 0 <= parameter_a_index < a_all.shape[1]:
+        raise IndexError("parameter_a_index is out of range.")
+    if not 0 <= parameter_b_index < b_all.shape[1]:
+        raise IndexError("parameter_b_index is out of range.")
+    a = a_all[:, parameter_a_index]
+    b = b_all[:, parameter_b_index]
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+    ax.scatter(a, b, alpha=0.45, s=16)
+    ax.set(xlabel=f"{parameter_a}[{parameter_a_index}]",
+           ylabel=f"{parameter_b}[{parameter_b_index}]",
+           title="Joint posterior sample distribution")
+    ax.grid(alpha=0.25)
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=160, bbox_inches="tight")
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
 
 
 def posterior_predictive_probability(
@@ -257,7 +454,7 @@ def demo():
     # ordinary SGD learning rates; tune a and b for the model/data scale.
     schedule = PolynomialStepSize(a=2e-3, b=100.0, gamma=0.55)
 
-    samples = train_sgld(
+    samples, history = train_sgld(
         model,
         x,
         y,
@@ -267,6 +464,7 @@ def demo():
         schedule=schedule,
         burn_in_steps=500,
         thinning=10,
+        record_history=True,
     )
 
     print(f"\nCollected {len(samples)} posterior samples.")
@@ -278,6 +476,21 @@ def demo():
                 f"{name}: posterior mean={stacked.mean(dim=0).numpy()}, "
                 f"posterior std={stacked.std(dim=0).numpy()}"
             )
+
+        plot_sgld_diagnostics(
+            history,
+            samples,
+            true_parameters={
+                "linear.weight": true_weights.cpu(),
+                "linear.bias": true_bias.cpu(),
+            },
+            parameter_names=["weight[0]", "weight[1]", "bias"],
+            save_path="sgld_diagnostics.png",
+        )
+        plot_posterior_pair(
+            samples,
+            save_path="sgld_posterior_pair.png",
+        )
 
         predictive_probs = posterior_predictive_probability(
             model, samples, x[:10]
